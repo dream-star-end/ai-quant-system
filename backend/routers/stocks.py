@@ -1,60 +1,66 @@
 """
-A股数据路由
+A股数据路由 - 行情/历史/搜索
 """
-from fastapi import APIRouter
-import yfinance as yf
-from datetime import datetime, timedelta
+from fastapi import APIRouter, Query
+from schemas.common import APIResponse
+from services.market_data import (
+    get_stock_quote,
+    get_stock_history,
+    get_multiple_quotes,
+    calculate_indicators,
+    STOCK_SYMBOLS,
+)
+from core.logger import logger
 
 router = APIRouter()
 
-@router.get("/history/{symbol}")
-async def get_stock_history(symbol: str, period: str = "1y"):
-    """获取股票历史数据"""
-    try:
-        ticker = yf.Ticker(symbol)
-        hist = ticker.history(period=period)
-        data = hist.to_dict(orient="records")
-        
-        # 转换日期格式
-        for item in data:
-            item["Date"] = item["Date"].isoformat()
-        
-        return {"symbol": symbol, "data": data}
-    except Exception as e:
-        return {"error": str(e)}
-
-@router.get("/info/{symbol}")
-async def get_stock_info(symbol: str):
-    """获取股票基本信息"""
-    try:
-        ticker = yf.Ticker(symbol)
-        info = ticker.info
-        return {"symbol": symbol, "info": info}
-    except Exception as e:
-        return {"error": str(e)}
 
 @router.get("/quote/{symbol}")
-async def get_stock_quote(symbol: str):
+async def quote(symbol: str):
     """获取股票实时报价"""
-    try:
-        ticker = yf.Ticker(symbol)
-        hist = ticker.history(period="5d")
-        if hist.empty:
-            return {"error": "No data found"}
-        
-        latest = hist.iloc[-1]
-        prev = hist.iloc[-2] if len(hist) > 1 else latest
-        
-        change = latest["Close"] - prev["Close"]
-        change_pct = (change / prev["Close"]) * 100
-        
-        return {
-            "symbol": symbol,
-            "price": latest["Close"],
-            "change": change,
-            "change_pct": change_pct,
-            "volume": latest["Volume"],
-            "timestamp": latest.name.isoformat()
-        }
-    except Exception as e:
-        return {"error": str(e)}
+    data = get_stock_quote(symbol)
+    if "error" in data:
+        return APIResponse(success=False, message=data["error"])
+    return APIResponse(data=data)
+
+
+@router.get("/history/{symbol}")
+async def history(symbol: str, period: str = Query("6mo", description="数据周期: 1mo,3mo,6mo,1y,2y,5y")):
+    """获取股票历史 K 线数据和技术指标"""
+    df = get_stock_history(symbol, period)
+    if df.empty:
+        return APIResponse(success=False, message="无数据")
+
+    candles = []
+    for idx, row in df.iterrows():
+        candles.append({
+            "date": str(idx)[:10],
+            "open": round(float(row["Open"]), 2),
+            "high": round(float(row["High"]), 2),
+            "low": round(float(row["Low"]), 2),
+            "close": round(float(row["Close"]), 2),
+            "volume": int(row["Volume"]),
+        })
+
+    indicators = calculate_indicators(df)
+    return APIResponse(data={
+        "symbol": symbol,
+        "candles": candles,
+        "indicators": indicators,
+    })
+
+
+@router.get("/batch")
+async def batch_quotes(symbols: str = Query(None, description="逗号分隔的股票代码")):
+    """批量获取多只股票报价"""
+    sym_list = symbols.split(",") if symbols else None
+    data = get_multiple_quotes(sym_list)
+    return APIResponse(data=data)
+
+
+@router.get("/symbols")
+async def list_symbols():
+    """获取支持的股票列表"""
+    return APIResponse(data=[
+        {"name": name, "symbol": sym} for name, sym in STOCK_SYMBOLS.items()
+    ])

@@ -3,52 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Quant System - Dashboard</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>AI Quant System - 智能量化交易平台</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📈</text></svg>">
 </head>
 <body>
-    <div id="app">
-        <nav class="sidebar">
-            <div class="logo">🤖 AI Quant</div>
-            <ul class="nav-menu">
-                <li class="active">📊 仪表盘</li>
-                <li>📈 A股数据</li>
-                <li>🪙 加密货币</li>
-                <li>🔮 AI预测</li>
-                <li>⚙️ 设置</li>
-            </ul>
-        </nav>
-        
-        <main class="content">
-            <header>
-                <h1>量化投资仪表盘</h1>
-                <div class="market-status">
-                    <span class="status-dot"></span> 市场已开盘
-                </div>
-            </header>
-            
-            <div class="dashboard">
-                <!-- 股票概览 -->
-                <div class="card">
-                    <h2>A股概览</h2>
-                    <div id="stock-summary" class="loading">加载中...</div>
-                </div>
-                
-                <!-- 加密货币 -->
-                <div class="card">
-                    <h2>加密货币</h2>
-                    <div id="crypto-summary" class="loading">加载中...</div>
-                </div>
-                
-                <!-- AI 预测 -->
-                <div class="card">
-                    <h2>AI 趋势预测</h2>
-                    <div id="ai-prediction" class="loading">加载中...</div>
-                </div>
-            </div>
-        </main>
-    </div>
-    
-    <script src="app.js"></script>
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
 </body>
 </html>
