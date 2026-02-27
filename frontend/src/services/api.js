@@ -84,6 +84,17 @@ export default {
   addToWatchlist: (id, symbol) => api.put(`/watchlist/${id}/add/${symbol}`),
   removeFromWatchlist: (id, symbol) => api.put(`/watchlist/${id}/remove/${symbol}`),
 
+  // Broker / Live Trading
+  getSupportedBrokers: () => api.get('/broker/supported'),
+  getBrokerAccounts: () => api.get('/broker/accounts'),
+  createBrokerAccount: (data) => api.post('/broker/accounts', data),
+  deleteBrokerAccount: (id) => api.delete(`/broker/accounts/${id}`),
+  testBrokerConnection: (id) => api.post(`/broker/accounts/${id}/test`),
+  getBrokerBalance: (id) => api.get(`/broker/accounts/${id}/balance`),
+  placeLiveOrder: (data) => api.post('/broker/trade', data),
+  getLiveOrders: (limit = 50) => api.get(`/broker/orders?limit=${limit}`),
+  cancelLiveOrder: (id) => api.post(`/broker/orders/${id}/cancel`),
+
   // AI Agent
   getAgents: () => api.get('/agent/'),
   createAgent: (data) => api.post('/agent/', data),

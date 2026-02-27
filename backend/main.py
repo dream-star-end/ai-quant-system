@@ -10,7 +10,7 @@ import uvicorn
 
 from config import get_settings
 from core.logger import logger
-from routers import stocks, crypto, analysis, backtest, strategies, portfolio, alerts, auth, watchlist, agent
+from routers import stocks, crypto, analysis, backtest, strategies, portfolio, alerts, auth, watchlist, agent, broker
 
 settings = get_settings()
 
@@ -67,6 +67,7 @@ app.include_router(portfolio.router, prefix=f"{prefix}/portfolio", tags=["投资
 app.include_router(alerts.router, prefix=f"{prefix}/alerts", tags=["智能告警"])
 app.include_router(watchlist.router, prefix=f"{prefix}/watchlist", tags=["自选管理"])
 app.include_router(agent.router, prefix=f"{prefix}/agent", tags=["AI Agent"])
+app.include_router(broker.router, prefix=f"{prefix}/broker", tags=["实盘交易"])
 
 
 @app.get("/")
