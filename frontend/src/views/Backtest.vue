@@ -127,6 +127,18 @@
           <el-table-column prop="reason" label="信号" />
         </el-table>
       </div>
+
+      <!-- DeepSeek AI 解读 -->
+      <div class="q-card" style="margin-top:16px;">
+        <div class="q-card-title" style="justify-content:space-between;">
+          <div><el-icon><MagicStick /></el-icon> AI 回测解读</div>
+          <el-button size="small" type="primary" @click="interpretBacktest" :loading="interpretLoading">
+            <el-icon><MagicStick /></el-icon> DeepSeek 解读
+          </el-button>
+        </div>
+        <div v-if="interpretation" style="line-height:1.8;font-size:14px;" v-html="renderMd(interpretation)"></div>
+        <el-empty v-else description="点击按钮让 DeepSeek 解读回测结果" :image-size="48" />
+      </div>
     </template>
   </div>
 </template>
@@ -145,6 +157,51 @@ import { ElMessage } from 'element-plus'
 const loading = ref(false)
 const result = ref(null)
 const strategyTypes = ref([])
+const interpretLoading = ref(false)
+const interpretation = ref('')
+
+function renderMd(text) {
+  if (!text) return ''
+  return text
+    .replace(/### (.*)/g, '<h4 style="margin:12px 0 6px;color:var(--q-blue);">$1</h4>')
+    .replace(/## (.*)/g, '<h3 style="margin:16px 0 8px;color:var(--q-blue);">$1</h3>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/`(.*?)`/g, '<code style="background:var(--q-bg);padding:2px 6px;border-radius:3px;">$1</code>')
+    .replace(/^- (.*)/gm, '<li style="margin-left:16px;">$1</li>')
+    .replace(/\n/g, '<br>')
+}
+
+async function interpretBacktest() {
+  if (!result.value) return
+  interpretLoading.value = true
+  try {
+    const res = await api.deepseekInterpretBacktest({
+      strategy_type: form.value.strategy_type,
+      params: form.value.params,
+      symbol: form.value.symbol,
+      result: {
+        total_return: result.value.total_return,
+        annual_return: result.value.annual_return,
+        sharpe_ratio: result.value.sharpe_ratio,
+        max_drawdown: result.value.max_drawdown,
+        win_rate: result.value.win_rate,
+        profit_factor: result.value.profit_factor,
+        total_trades: result.value.total_trades,
+        winning_trades: result.value.winning_trades,
+        losing_trades: result.value.losing_trades,
+        avg_win: result.value.avg_win,
+        avg_loss: result.value.avg_loss,
+      },
+    })
+    if (res.success) {
+      interpretation.value = res.data.interpretation
+    } else {
+      ElMessage.error(res.message)
+    }
+  } catch(e) { ElMessage.error(e.message) }
+  interpretLoading.value = false
+}
 
 const paramLabels = {
   fast_period: '快线周期', slow_period: '慢线周期', period: '周期',

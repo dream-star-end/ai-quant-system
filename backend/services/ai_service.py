@@ -1,13 +1,14 @@
 """
 AI 分析服务
-- 多模型预测 (LSTM + 统计模型)
-- 智能推荐
-- 综合分析报告
+- 技术指标规则引擎（实时，无需 API key）
+- DeepSeek 大模型深度分析（需要 API key）
+- 两者融合：先跑技术指标，再让 DeepSeek 解读
 """
 import numpy as np
 import pandas as pd
 from typing import Dict, Any, List, Optional
 from core.logger import logger
+from services.deepseek_service import is_deepseek_configured
 
 
 def predict_trend(df: pd.DataFrame, horizon: int = 5) -> Dict[str, Any]:

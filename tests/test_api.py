@@ -67,5 +67,25 @@ def test_backtest_guest():
     })
     assert response.status_code == 200
     data = response.json()
-    # 可能成功也可能因为网络原因获取不到数据
     assert "success" in data
+
+
+def test_deepseek_status():
+    response = client.get("/api/v1/analysis/deepseek/status")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["success"] is True
+    assert "configured" in data["data"]
+    assert "model" in data["data"]
+
+
+def test_deepseek_chat_without_key():
+    """未配置 key 时应返回错误提示而非崩溃"""
+    response = client.post("/api/v1/analysis/deepseek/chat", json={
+        "message": "茅台现在能买吗？",
+    })
+    assert response.status_code == 200
+    data = response.json()
+    # 无 key 时 success=False
+    if not data.get("success"):
+        assert "DEEPSEEK_API_KEY" in data.get("message", "")

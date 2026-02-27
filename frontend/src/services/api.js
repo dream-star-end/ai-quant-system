@@ -2,7 +2,7 @@ import axios from 'axios'
 
 const api = axios.create({
   baseURL: '/api/v1',
-  timeout: 30000,
+  timeout: 60000,
 })
 
 api.interceptors.request.use((config) => {
@@ -45,6 +45,14 @@ export default {
   getRecommend: (symbol, asset = 'stock') => api.get(`/analysis/recommend/${symbol}?asset_type=${asset}`),
   getRisk: (symbol, asset = 'stock') => api.get(`/analysis/risk/${symbol}?asset_type=${asset}`),
   getIndicators: (symbol, asset = 'stock') => api.get(`/analysis/indicators/${symbol}?asset_type=${asset}`),
+
+  // DeepSeek AI
+  getDeepseekStatus: () => api.get('/analysis/deepseek/status'),
+  deepseekChat: (data) => api.post('/analysis/deepseek/chat', data),
+  getDeepseekReport: (symbol, asset = 'stock') => api.get(`/analysis/deepseek/report/${symbol}?asset_type=${asset}`),
+  deepseekInterpretBacktest: (data) => api.post('/analysis/deepseek/interpret-backtest', data),
+  getDeepseekStrategySuggest: (symbol, asset = 'stock', pref = '') =>
+    api.get(`/analysis/deepseek/strategy-suggest/${symbol}?asset_type=${asset}&preference=${pref}`),
 
   // Backtest
   runBacktest: (data) => api.post('/backtest/run/guest', data),

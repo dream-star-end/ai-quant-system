@@ -37,7 +37,14 @@ class Settings:
     # Exchange defaults
     DEFAULT_CRYPTO_EXCHANGE: str = os.getenv("DEFAULT_CRYPTO_EXCHANGE", "binance")
 
-    # AI Model
+    # DeepSeek LLM
+    DEEPSEEK_API_KEY: str = os.getenv("DEEPSEEK_API_KEY", "")
+    DEEPSEEK_BASE_URL: str = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
+    DEEPSEEK_MODEL: str = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
+    DEEPSEEK_MAX_TOKENS: int = int(os.getenv("DEEPSEEK_MAX_TOKENS", "4096"))
+    DEEPSEEK_TEMPERATURE: float = float(os.getenv("DEEPSEEK_TEMPERATURE", "0.3"))
+
+    # AI Model (local)
     MODEL_DIR: str = str(BASE_DIR / "models" / "saved")
     PREDICTION_CONFIDENCE_THRESHOLD: float = 0.6
 
