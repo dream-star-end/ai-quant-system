@@ -83,4 +83,18 @@ export default {
   createWatchlist: (data) => api.post('/watchlist/', data),
   addToWatchlist: (id, symbol) => api.put(`/watchlist/${id}/add/${symbol}`),
   removeFromWatchlist: (id, symbol) => api.put(`/watchlist/${id}/remove/${symbol}`),
+
+  // AI Agent
+  getAgents: () => api.get('/agent/'),
+  createAgent: (data) => api.post('/agent/', data),
+  updateAgent: (id, data) => api.put(`/agent/${id}`, data),
+  deleteAgent: (id) => api.delete(`/agent/${id}`),
+  startAgent: (id) => api.post(`/agent/${id}/start`),
+  stopAgent: (id) => api.post(`/agent/${id}/stop`),
+  pauseAgent: (id) => api.post(`/agent/${id}/pause`),
+  runAgentCheck: (id) => api.post(`/agent/${id}/run-check`),
+  getAgentDecisions: (id, limit = 50) => api.get(`/agent/${id}/decisions?limit=${limit}`),
+  getAgentPending: (id) => api.get(`/agent/${id}/decisions/pending`),
+  approveDecision: (id) => api.post(`/agent/decisions/${id}/approve`),
+  rejectDecision: (id) => api.post(`/agent/decisions/${id}/reject`),
 }
