@@ -86,6 +86,32 @@ def test_deepseek_chat_without_key():
     })
     assert response.status_code == 200
     data = response.json()
-    # 无 key 时 success=False
     if not data.get("success"):
         assert "DEEPSEEK_API_KEY" in data.get("message", "")
+
+
+def test_supported_brokers():
+    """获取支持的交易所列表"""
+    response = client.get("/api/v1/broker/supported")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["success"] is True
+    types = [b["type"] for b in data["data"]]
+    assert "binance" in types
+    assert "okx" in types
+
+
+def test_live_trade_requires_confirmation():
+    """实盘交易需要二次确认"""
+    response = client.post("/api/v1/broker/trade", json={
+        "broker_account_id": 1,
+        "symbol": "BTC/USDT",
+        "side": "buy",
+        "quantity": 0.001,
+        "confirm_real_trade": False,
+    })
+    assert response.status_code in (200, 401)
+    data = response.json()
+    if response.status_code == 200:
+        assert data["success"] is False
+        assert "确认" in data.get("message", "")
