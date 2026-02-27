@@ -4,23 +4,24 @@ Broker 工厂 — 根据配置创建对应的交易适配器
 from typing import Dict, Any
 from services.brokers.base import BaseBroker
 from services.brokers.crypto_broker import CryptoBroker
-from services.brokers.stock_broker import StockBrokerStub
+from services.brokers.stock_broker import THSBroker, StockBrokerStub
 from database import get_supabase
 from core.logger import logger
 
 CRYPTO_EXCHANGES = {"binance", "okx", "huobi", "bybit", "gate"}
-STOCK_BROKERS = {"stock_sim", "stock_hx", "stock_ths"}
 
 
 def create_broker(
     broker_type: str,
-    api_key: str,
-    api_secret: str,
+    api_key: str = "",
+    api_secret: str = "",
     passphrase: str = "",
     testnet: bool = False,
     extra_config: Dict[str, Any] = None,
 ) -> BaseBroker:
     """根据类型创建 Broker 实例"""
+    extra = extra_config or {}
+
     if broker_type in CRYPTO_EXCHANGES:
         return CryptoBroker(
             exchange_id=broker_type,
@@ -28,9 +29,16 @@ def create_broker(
             api_secret=api_secret,
             passphrase=passphrase,
             testnet=testnet,
-            extra_config=extra_config,
+            extra_config=extra,
         )
-    elif broker_type in STOCK_BROKERS:
+    elif broker_type == "stock_ths":
+        mode = extra.get("mode", "gateway")
+        return THSBroker(
+            mode=mode,
+            exe_path=extra.get("exe_path", ""),
+            gateway_url=api_key or extra.get("gateway_url", "http://127.0.0.1:19880"),
+        )
+    elif broker_type in ("stock_sim", "stock_hx"):
         return StockBrokerStub(broker_id=broker_type)
     else:
         raise ValueError(f"不支持的 broker 类型: {broker_type}")
@@ -62,7 +70,17 @@ def get_supported_brokers():
         {"type": "huobi", "name": "Huobi 火币", "category": "crypto", "features": ["现货"]},
         {"type": "bybit", "name": "Bybit", "category": "crypto", "features": ["现货", "合约", "测试网"]},
         {"type": "gate", "name": "Gate.io", "category": "crypto", "features": ["现货"]},
-        {"type": "stock_sim", "name": "A股模拟 (待对接)", "category": "stock", "features": ["模拟交易"]},
-        {"type": "stock_hx", "name": "华鑫证券奇点 (待对接)", "category": "stock", "features": ["量化API"]},
-        {"type": "stock_ths", "name": "同花顺 easytrader (待对接)", "category": "stock", "features": ["模拟键鼠"]},
+        {
+            "type": "stock_ths",
+            "name": "同花顺",
+            "category": "stock",
+            "features": ["A股现货", "本地直连", "HTTP网关"],
+            "config_fields": [
+                {"key": "mode", "label": "连接模式", "type": "select", "options": ["gateway", "local"], "default": "gateway"},
+                {"key": "gateway_url", "label": "网关地址 (gateway模式)", "type": "text", "default": "http://127.0.0.1:19880", "placeholder": "http://你的IP:19880"},
+                {"key": "exe_path", "label": "同花顺路径 (local模式)", "type": "text", "default": "", "placeholder": "留空自动检测"},
+            ],
+            "setup_guide": "Gateway模式: 在Windows上运行 tools/ths_gateway.py，然后填写网关地址。\nLocal模式: 后端需部署在运行同花顺的Windows机器上。",
+        },
+        {"type": "stock_hx", "name": "华鑫证券奇点", "category": "stock", "features": ["量化API", "待开发"]},
     ]

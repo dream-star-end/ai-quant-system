@@ -97,31 +97,69 @@
     </div>
 
     <!-- 添加账户 -->
-    <el-dialog v-model="showAdd" title="添加交易账户" width="480px">
-      <el-alert type="info" :closable="false" style="margin-bottom:16px;">
+    <el-dialog v-model="showAdd" title="添加交易账户" width="520px">
+      <!-- 加密货币提示 -->
+      <el-alert v-if="addForm.broker_type !== 'stock_ths'" type="info" :closable="false" style="margin-bottom:16px;">
         API Key 请在交易所后台创建，建议仅开放「现货交易」权限并绑定 IP。
+      </el-alert>
+      <!-- 同花顺提示 -->
+      <el-alert v-else type="warning" :closable="false" style="margin-bottom:16px;">
+        <template #title>同花顺对接说明</template>
+        <div style="font-size:12px;line-height:1.8;">
+          <p><strong>Gateway 模式 (推荐):</strong></p>
+          <p>1. 在运行同花顺客户端的 Windows 电脑上，执行: <code>pip install easytrader flask</code></p>
+          <p>2. 打开同花顺「独立下单」程序并登录</p>
+          <p>3. 运行网关: <code>python tools/ths_gateway.py</code></p>
+          <p>4. 在下方填写网关地址 (同一台电脑填 http://127.0.0.1:19880)</p>
+          <p style="margin-top:4px;"><strong>Local 模式:</strong> 后端须部署在运行同花顺的同一台 Windows 机器上。</p>
+        </div>
       </el-alert>
       <el-form label-position="top" size="small">
         <el-form-item label="账户名称">
           <el-input v-model="addForm.name" placeholder="如: 我的币安账户" />
         </el-form-item>
-        <el-form-item label="交易所">
-          <el-select v-model="addForm.broker_type" style="width:100%;">
-            <el-option v-for="b in brokerTypes.filter(x => x.category === 'crypto')" :key="b.type" :label="b.name" :value="b.type" />
+        <el-form-item label="交易所/券商">
+          <el-select v-model="addForm.broker_type" style="width:100%;" @change="onBrokerTypeChange">
+            <el-option-group label="加密货币">
+              <el-option v-for="b in brokerTypes.filter(x => x.category === 'crypto')" :key="b.type" :label="b.name" :value="b.type" />
+            </el-option-group>
+            <el-option-group label="A股">
+              <el-option label="同花顺" value="stock_ths" />
+            </el-option-group>
           </el-select>
         </el-form-item>
-        <el-form-item label="API Key">
-          <el-input v-model="addForm.api_key" placeholder="API Key" />
-        </el-form-item>
-        <el-form-item label="API Secret">
-          <el-input v-model="addForm.api_secret" placeholder="API Secret" type="password" show-password />
-        </el-form-item>
-        <el-form-item label="Passphrase (OKX 需要)">
-          <el-input v-model="addForm.passphrase" placeholder="仅 OKX 需要" type="password" show-password />
-        </el-form-item>
-        <el-form-item>
-          <el-checkbox v-model="addForm.is_testnet">使用测试网 (推荐先用测试网验证)</el-checkbox>
-        </el-form-item>
+
+        <!-- 加密货币配置 -->
+        <template v-if="addForm.broker_type !== 'stock_ths'">
+          <el-form-item label="API Key">
+            <el-input v-model="addForm.api_key" placeholder="API Key" />
+          </el-form-item>
+          <el-form-item label="API Secret">
+            <el-input v-model="addForm.api_secret" placeholder="API Secret" type="password" show-password />
+          </el-form-item>
+          <el-form-item label="Passphrase (OKX 需要)">
+            <el-input v-model="addForm.passphrase" placeholder="仅 OKX 需要" type="password" show-password />
+          </el-form-item>
+          <el-form-item>
+            <el-checkbox v-model="addForm.is_testnet">使用测试网 (推荐先用测试网验证)</el-checkbox>
+          </el-form-item>
+        </template>
+
+        <!-- 同花顺配置 -->
+        <template v-else>
+          <el-form-item label="连接模式">
+            <el-radio-group v-model="thsMode">
+              <el-radio-button value="gateway">Gateway (推荐)</el-radio-button>
+              <el-radio-button value="local">本地直连</el-radio-button>
+            </el-radio-group>
+          </el-form-item>
+          <el-form-item v-if="thsMode === 'gateway'" label="网关地址">
+            <el-input v-model="addForm.api_key" placeholder="http://127.0.0.1:19880" />
+          </el-form-item>
+          <el-form-item v-else label="同花顺客户端路径 (可留空自动检测)">
+            <el-input v-model="thsExePath" placeholder="C:\同花顺\xiadan.exe" />
+          </el-form-item>
+        </template>
       </el-form>
       <template #footer>
         <el-button @click="showAdd = false">取消</el-button>
@@ -145,8 +183,22 @@ const showAdd = ref(false)
 const adding = ref(false)
 
 const addForm = ref({
-  name: '', broker_type: 'binance', api_key: '', api_secret: '', passphrase: '', is_testnet: true,
+  name: '', broker_type: 'binance', api_key: '', api_secret: '', passphrase: '', is_testnet: true, extra_config: {},
 })
+const thsMode = ref('gateway')
+const thsExePath = ref('')
+
+function onBrokerTypeChange() {
+  if (addForm.value.broker_type === 'stock_ths') {
+    addForm.value.api_key = 'http://127.0.0.1:19880'
+    addForm.value.api_secret = ''
+    addForm.value.is_testnet = false
+  } else {
+    addForm.value.api_key = ''
+    addForm.value.api_secret = ''
+    addForm.value.is_testnet = true
+  }
+}
 
 async function loadAccounts() {
   if (!userStore.isLoggedIn) return
@@ -164,8 +216,16 @@ async function loadOrders() {
 }
 async function addAccount() {
   adding.value = true
+  const payload = { ...addForm.value }
+  if (payload.broker_type === 'stock_ths') {
+    payload.extra_config = { mode: thsMode.value, exe_path: thsExePath.value }
+    if (thsMode.value === 'gateway') {
+      payload.extra_config.gateway_url = payload.api_key
+    }
+    payload.api_secret = payload.api_secret || 'n/a'
+  }
   try {
-    const res = await api.createBrokerAccount(addForm.value)
+    const res = await api.createBrokerAccount(payload)
     if (res.success) { ElMessage.success('添加成功'); showAdd.value = false; loadAccounts() }
     else ElMessage.error(res.message)
   } catch(e) { ElMessage.error(e.message) }
@@ -193,9 +253,14 @@ async function fetchBalance(acc) {
   acc._loadingBal = false
 }
 function quickAdd(b) {
-  if (b.category === 'stock') { ElMessage.info('A股券商接口开发中，敬请期待'); return }
+  if (b.type === 'stock_hx') { ElMessage.info('华鑫证券接口开发中'); return }
   addForm.value.broker_type = b.type
   addForm.value.name = `我的${b.name}账户`
+  if (b.type === 'stock_ths') {
+    addForm.value.api_key = 'http://127.0.0.1:19880'
+    addForm.value.api_secret = ''
+    addForm.value.extra_config = { mode: 'gateway' }
+  }
   showAdd.value = true
 }
 
